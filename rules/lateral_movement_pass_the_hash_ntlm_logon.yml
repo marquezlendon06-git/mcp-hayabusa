@@ -1,0 +1,51 @@
+title: Pass-the-Hash - NTLM Network Logon with No Prior Interactive Session
+id: f6a7b8c9-d0e1-2345-f012-456789012345
+status: test
+description: |
+    Detects Pass-the-Hash (PtH) attacks by identifying NTLM network logons (LogonType 3)
+    where the authentication package is NtLmSsp and the source is not a domain controller
+    or the subject SID indicates no interactive session. Attackers use stolen NTLM hashes
+    to authenticate to remote systems without knowing the plaintext password.
+    Tools that perform PtH include Mimikatz (sekurlsa::pth), Impacket, and CrackMapExec.
+references:
+    - https://attack.mitre.org/techniques/T1550/002/
+    - https://www.ultimatewindowssecurity.com/securitylog/encyclopedia/event.aspx?eventID=4624
+    - https://github.com/gentilkiwi/mimikatz/wiki/module-~-sekurlsa#pth
+    - https://github.com/byt3bl33d3r/CrackMapExec
+author: Detection Engineering Team
+date: 2024-01-15
+modified: 2024-06-01
+tags:
+    - attack.lateral-movement
+    - attack.t1550.002
+    - attack.credential-access
+logsource:
+    product: windows
+    service: security
+detection:
+    security:
+        EventID: 4624
+        Channel: Security
+    selection_ntlm_network:
+        LogonType: 3                          # Network logon
+        AuthenticationPackageName: NTLM
+        LogonProcessName: NtLmSsp
+    selection_suspicious:
+        SubjectUserSid: 'S-1-0-0'            # NULL SID — no prior session on this host
+    filter_anonymous:
+        TargetUserName:
+            - 'ANONYMOUS LOGON'
+            - '-'
+    filter_local_machine:
+        WorkstationName: ''                   # Logon from local machine has empty workstation
+    filter_ipc:
+        ShareName: 'IPC$'                     # Filter SMB named pipe connections
+    condition: >
+        security and selection_ntlm_network and selection_suspicious
+        and not (filter_anonymous or filter_local_machine)
+falsepositives:
+    - Older applications relying on NTLM for network authentication
+    - Workgroup environments without Kerberos (no Active Directory)
+    - File server access using stored credentials (mitigate by requiring Kerberos)
+level: medium
+ruletype: Sigma

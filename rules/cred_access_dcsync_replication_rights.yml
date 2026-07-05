@@ -1,0 +1,50 @@
+title: DCSync Attack via Directory Replication Permissions
+id: e5f6a7b8-c9d0-1234-ef01-345678901234
+status: test
+description: |
+    Detects DCSync attacks by identifying directory replication rights requests on the
+    domain root object (Security Event 4662). Attackers with sufficient AD privileges
+    (or compromised DC accounts) use DS-Replication-Get-Changes-All to pull password
+    hashes from Active Directory without running code on a Domain Controller.
+    This technique is used by tools such as Mimikatz (lsadump::dcsync) and Impacket secretsdump.
+references:
+    - https://attack.mitre.org/techniques/T1003/006/
+    - https://adsecurity.org/?p=1729
+    - https://github.com/gentilkiwi/mimikatz/wiki/module-~-lsadump#dcsync
+    - https://github.com/SecureAuthCorp/impacket/blob/master/examples/secretsdump.py
+author: Detection Engineering Team
+date: 2024-01-15
+modified: 2024-06-01
+tags:
+    - attack.credential-access
+    - attack.t1003.006
+logsource:
+    product: windows
+    service: security
+detection:
+    security:
+        EventID: 4662
+        Channel: Security
+    selection_object_type:
+        ObjectType|contains:
+            - '19195a5b-6da0-11d0-afd3-00c04fd930c9'  # domainDNS
+    selection_properties:
+        Properties|contains:
+            - '1131f6aa-9c07-11d1-f79f-00c04fc2dcd2'  # DS-Replication-Get-Changes
+            - '1131f6ad-9c07-11d1-f79f-00c04fc2dcd2'  # DS-Replication-Get-Changes-All
+            - '89e95b76-444d-4c62-991a-0facbeda640c'  # DS-Replication-Get-Changes-In-Filtered-Set
+    selection_access_mask:
+        AccessMask: '0x100'  # Control Access
+    filter_dc_accounts:
+        SubjectUserName|endswith: '$'  # Domain controller machine accounts performing legitimate replication
+    filter_system:
+        SubjectUserSid: 'S-1-5-18'    # Local System
+    condition: >
+        security and selection_object_type and selection_properties and
+        selection_access_mask and not (filter_dc_accounts or filter_system)
+falsepositives:
+    - Domain Controllers performing legitimate AD replication (filtered by machine account)
+    - Azure AD Connect / AAD Sync service accounts performing directory synchronization
+    - Authorized AD backup solutions with replication rights
+level: critical
+ruletype: Sigma

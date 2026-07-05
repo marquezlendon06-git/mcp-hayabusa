@@ -1,0 +1,62 @@
+title: LSASS Memory Access via Suspicious Process
+id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+status: test
+description: |
+    Detects suspicious process access to LSASS memory using access rights commonly
+    required by credential dumping tools such as Mimikatz, ProcDump, or comsvcs.dll
+    MiniDump. Legitimate processes that access LSASS (AV, EDR, WER) are filtered.
+references:
+    - https://attack.mitre.org/techniques/T1003/001/
+    - https://github.com/gentilkiwi/mimikatz
+    - https://lolbas-project.github.io/lolbas/Libraries/Comsvcs/
+    - https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights
+author: Detection Engineering Team
+date: 2024-01-15
+modified: 2024-06-01
+tags:
+    - attack.credential-access
+    - attack.t1003.001
+logsource:
+    category: process_access
+    product: windows
+detection:
+    process_access:
+        EventID: 10
+        Channel: Microsoft-Windows-Sysmon/Operational
+    selection_target:
+        TargetImage|endswith: '\lsass.exe'
+    selection_access:
+        GrantedAccess|contains:
+            - '0x1010'    # PROCESS_VM_READ | PROCESS_QUERY_LIMITED_INFORMATION
+            - '0x1410'    # PROCESS_VM_READ | PROCESS_QUERY_INFORMATION
+            - '0x143a'    # mimikatz default access mask
+            - '0x1438'    # alternative mimikatz mask
+            - '0x1fffff'  # PROCESS_ALL_ACCESS
+            - '0x40'      # PROCESS_DUP_HANDLE (used by some tools)
+            - '0x1000'    # PROCESS_QUERY_LIMITED_INFORMATION only (unusual alone)
+    filter_legit_system:
+        SourceImage|contains:
+            - '\Windows\System32\svchost.exe'
+            - '\Windows\System32\lsm.exe'
+            - '\Windows\System32\csrss.exe'
+            - '\Windows\System32\wininit.exe'
+            - '\Windows\System32\winlogon.exe'
+            - '\Windows\System32\services.exe'
+            - '\Windows\System32\taskhost.exe'
+            - '\Windows\System32\taskhostw.exe'
+    filter_legit_security:
+        SourceImage|contains:
+            - '\Windows\System32\MsMpEng.exe'
+            - '\Windows\System32\WerFault.exe'
+            - '\Windows\System32\wbem\WmiPrvSE.exe'
+            - 'Antivirus'
+            - 'CrowdStrike'
+            - 'SentinelOne'
+            - 'CarbonBlack'
+    condition: process_access and selection_target and selection_access and not (filter_legit_system or filter_legit_security)
+falsepositives:
+    - Security software, EDR agents, and AV products that legitimately access LSASS
+    - Windows Error Reporting (WerFault.exe) capturing crash dumps
+    - Process Monitor and other administrative debugging tools
+level: high
+ruletype: Sigma

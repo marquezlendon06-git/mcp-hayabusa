@@ -1,0 +1,65 @@
+title: Kerberoasting via Known Offensive Tools
+id: d4e5f6a7-b8c9-0123-def0-234567890123
+status: test
+description: |
+    Detects execution of tools commonly used for Kerberoasting attacks, including Rubeus,
+    Impacket's GetUserSPNs, and PowerView/PowerSploit. These tools enumerate service
+    accounts with SPNs and request TGS tickets for offline cracking.
+references:
+    - https://attack.mitre.org/techniques/T1558/003/
+    - https://github.com/GhostPack/Rubeus
+    - https://github.com/SecureAuthCorp/impacket
+    - https://github.com/PowerShellMafia/PowerSploit
+author: Detection Engineering Team
+date: 2024-01-15
+modified: 2024-06-01
+tags:
+    - attack.credential-access
+    - attack.t1558.003
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    process_creation:
+        EventID: 1
+        Channel: Microsoft-Windows-Sysmon/Operational
+    selection_rubeus:
+        - Image|endswith: '\Rubeus.exe'
+        - OriginalFileName: 'Rubeus.exe'
+        - CommandLine|contains: 'Rubeus'
+    selection_rubeus_kerberoast:
+        CommandLine|contains:
+            - 'kerberoast'
+            - 'asreproast'
+    selection_impacket:
+        CommandLine|contains:
+            - 'GetUserSPNs'
+            - 'GetNPUsers'
+            - 'GetTGT'
+    selection_powerview_spn:
+        CommandLine|contains:
+            - 'Get-DomainUser -SPN'
+            - 'Get-NetUser -SPN'
+            - 'Invoke-Kerberoast'
+            - 'Request-SPNTicket'
+    selection_setspn_enum:
+        Image|endswith: '\setspn.exe'
+        CommandLine|contains:
+            - '-T'
+            - '-Q'
+            - '/T'
+            - '/Q'
+    condition: >
+        process_creation and (
+            selection_rubeus or
+            selection_rubeus_kerberoast or
+            selection_impacket or
+            selection_powerview_spn or
+            selection_setspn_enum
+        )
+falsepositives:
+    - Authorized penetration testing activities
+    - Administrators using setspn.exe for legitimate SPN management (tune on CommandLine)
+    - Red team exercises with prior authorization
+level: high
+ruletype: Sigma
