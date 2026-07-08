@@ -437,8 +437,9 @@ async def read_resource(uri: AnyUrl):
 
     if uri_str.startswith("detection://rules/"):
         rule_name = uri_str.removeprefix("detection://rules/")
-        rule_file = RULES_DIR / f"{rule_name}.yml"
-        if not rule_file.is_file():
+        rules_dir = RULES_DIR.resolve()
+        rule_file = (rules_dir / f"{rule_name}.yml").resolve()
+        if not _is_within_allowed(rule_file, [rules_dir]) or not rule_file.is_file():
             raise FileNotFoundError(f"Rule not found: {rule_name}")
         return [TextResourceContents(uri=uri, mimeType="text/yaml", text=rule_file.read_text(encoding="utf-8"))]
 

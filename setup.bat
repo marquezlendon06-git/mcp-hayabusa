@@ -92,7 +92,19 @@ echo.
 echo [*] Configure allowed EVTX directory ^(scan_evtx can only read from here^):
 set ALLOWED_DEFAULT=%REPO_DIR%\samples
 set /p ALLOWED_DIR="    Path [%ALLOWED_DEFAULT%]: "
-if "!ALLOWED_DIR!"=="" set ALLOWED_DIR=%ALLOWED_DEFAULT%
+if not defined ALLOWED_DIR set "ALLOWED_DIR=%ALLOWED_DEFAULT%"
+
+:: Reject characters that could break out of quoting in the commands below
+:: (mkdir, claude mcp add). Checked via Python reading the value from the
+:: environment directly, so the untrusted text is never re-embedded in a
+:: quoted cmd.exe argument before it's known to be safe.
+!PYTHON! -c "import os, sys; v = os.environ['ALLOWED_DIR']; bad = chr(34) + '&|^<>'; sys.exit(1 if any(c in v for c in bad) else 0)"
+if !errorlevel! neq 0 (
+    echo [ERROR] Path contains a disallowed character ^(" ^& ^| ^^ ^< ^>^).
+    echo         Re-run setup.bat and enter a plain path.
+    pause
+    exit /b 1
+)
 
 if not exist "!ALLOWED_DIR!" (
     mkdir "!ALLOWED_DIR!"

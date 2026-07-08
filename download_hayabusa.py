@@ -91,8 +91,15 @@ def main() -> None:
         DEST.mkdir(parents=True)
 
         print(f"Extracting to {DEST} ...")
+        dest_resolved = DEST.resolve()
         with zipfile.ZipFile(zip_path) as zf:
-            zf.extractall(DEST)
+            for member in zf.namelist():
+                extracted = (dest_resolved / member).resolve()
+                if extracted != dest_resolved and dest_resolved not in extracted.parents:
+                    raise RuntimeError(
+                        f"Refusing to extract '{member}': path escapes {dest_resolved}"
+                    )
+            zf.extractall(dest_resolved)
 
         # Stable hard link so the MCP server always resolves the same path.
         # Extension is .exe on Windows, no extension on Unix.
