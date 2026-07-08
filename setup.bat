@@ -78,8 +78,8 @@ echo.
 if exist "%REPO_DIR%\mappings\attck_techniques.json" (
     echo [OK] ATT&CK mappings already present, skipping download.
 ) else (
-    echo [*] Downloading ATT&CK technique mappings ^(download_attack_data.py^)...
-    !PYTHON! "%REPO_DIR%\download_attack_data.py"
+    echo [*] Downloading ATT&CK technique mappings ^(download_stix_data.py^)...
+    !PYTHON! "%REPO_DIR%\download_stix_data.py"
     if !errorlevel! neq 0 (
         echo [ERROR] ATT&CK data download failed. Check the output above.
         pause

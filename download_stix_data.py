@@ -1,7 +1,7 @@
 """
 Downloads ATT&CK STIX data and extracts technique metadata into mappings/attck_techniques.json.
 Run once before starting the server:
-    py download_attack_data.py
+    py download_stix_data.py
 """
 import json
 import re

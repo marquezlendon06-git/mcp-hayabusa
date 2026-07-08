@@ -102,7 +102,7 @@ def _load_attck() -> dict:
         if not ATTCK_FILE.is_file():
             raise FileNotFoundError(
                 f"ATT&CK data not found at {ATTCK_FILE}. "
-                "Run: py download_attack_data.py"
+                "Run: py download_stix_data.py"
             )
         _attck_cache = json.loads(ATTCK_FILE.read_text(encoding="utf-8"))
     return _attck_cache
@@ -456,7 +456,7 @@ async def read_resource(uri: AnyUrl):
         if technique is None:
             raise FileNotFoundError(
                 f"ATT&CK technique '{technique_id}' not found. "
-                "Check the ID format (e.g. T1003.001) or re-run download_attack_data.py."
+                "Check the ID format (e.g. T1003.001) or re-run download_stix_data.py."
             )
 
         rules = _rules_for_technique(technique_id)

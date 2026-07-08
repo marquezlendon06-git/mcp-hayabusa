@@ -47,7 +47,7 @@ hayabusa.py  — Subprocess wrapper for the Hayabusa CLI
 
 Run `setup.bat` from a fresh checkout. It detects a working Python interpreter,
 installs dependencies, downloads the Hayabusa binary (`download_hayabusa.py`)
-and ATT&CK technique mappings (`download_attack_data.py`), writes a portable
+and ATT&CK technique mappings (`download_stix_data.py`), writes a portable
 `run.bat`, and registers the server with Claude Code (`claude mcp add`).
 
 To do it by hand instead:
@@ -55,7 +55,7 @@ To do it by hand instead:
 ```powershell
 py -m pip install -r requirements.txt
 py download_hayabusa.py
-py download_attack_data.py
+py download_stix_data.py
 claude mcp add hayabusa "C:\path\to\mcp-hayabusa\run.bat" --scope project -e HAYABUSA_ALLOWED_DIRS="C:\path\to\mcp-hayabusa\samples"
 ```
 
